@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>North Star Scanner</title>
+<meta name="description" content="Live police, fire and EMS scanner feeds for the Twin Cities metro and the 100-mile ring around it.">
+<meta name="theme-color" content="#101418">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Scanner">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --bg:#101418;
+    --panel:#171d23;
+    --panel-2:#1d242c;
+    --line:#2a333d;
+    --text:#e9e5da;
+    --muted:#8d97a3;
+    --amber:#ffb020;
+    --amber-ink:#0f1114;
+    --good:#4fbf7a;
+    --off:#5b6672;
+    --enc:#e05e5e;
+    --chipbg:#222b34;
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --bg:#f1efe9;
+      --panel:#ffffff;
+      --panel-2:#f7f5f0;
+      --line:#ddd8cd;
+      --text:#20252b;
+      --muted:#6b7480;
+      --amber:#a86a00;
+      --amber-ink:#ffffff;
+      --good:#1e8a4c;
+      --off:#98a1ab;
+      --enc:#c03535;
+      --chipbg:#ece9e1;
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#f1efe9;
+    --panel:#ffffff;
+    --panel-2:#f7f5f0;
+    --line:#ddd8cd;
+    --text:#20252b;
+    --muted:#6b7480;
+    --amber:#a86a00;
+    --amber-ink:#ffffff;
+    --good:#1e8a4c;
+    --off:#98a1ab;
+    --enc:#c03535;
+    --chipbg:#ece9e1;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Barlow',system-ui,-apple-system,sans-serif;
+    font-size:15px;
+    line-height:1.5;
+    margin:0;
+    padding-top:env(safe-area-inset-top);
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:0 20px calc(64px + env(safe-area-inset-bottom))}
+
+  header{
+    border-bottom:2px solid var(--amber);
+    padding:28px 0 18px;
+    display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px;justify-content:space-between;
+  }
+  .brand h1{
+    font-family:'Barlow Condensed',sans-serif;
+    font-weight:700;font-size:42px;line-height:1;margin:0;
+    letter-spacing:.01em;text-transform:uppercase;
+  }
+  .brand h1 .star{color:var(--amber)}
+  .brand p{margin:6px 0 0;color:var(--muted);font-size:14px}
+  .stats{display:flex;gap:22px}
+  .stat{text-align:right}
+  .stat b{
+    display:block;font-family:'IBM Plex Mono',monospace;font-weight:500;
+    font-size:22px;color:var(--amber);font-variant-numeric:tabular-nums;line-height:1.1;
+  }
+  .stat span{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+
+  .advisory{
+    margin:22px 0 0;background:var(--panel);border:1px solid var(--line);
+    border-left:4px solid var(--enc);padding:14px 18px;
+  }
+  .advisory h2{
+    font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:600;
+    text-transform:uppercase;letter-spacing:.06em;margin:0 0 6px;color:var(--enc);
+  }
+  .advisory p{margin:0;color:var(--muted);font-size:14px;max-width:72ch}
+  .advisory p b{color:var(--text);font-weight:600}
+
+  .controls{
+    position:sticky;top:0;z-index:5;background:var(--bg);
+    padding:calc(12px + env(safe-area-inset-top)) 0 12px;margin-top:4px;
+    border-bottom:1px solid var(--line);
+    display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+  }
+  .search{
+    flex:1 1 220px;background:var(--panel);border:1px solid var(--line);color:var(--text);
+    font-family:'IBM Plex Mono',monospace;font-size:16px;padding:10px 12px;border-radius:3px;
+    -webkit-appearance:none;
+  }
+  .search::placeholder{color:var(--muted)}
+  .search:focus{outline:2px solid var(--amber);outline-offset:1px}
+  .chips{display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;padding-bottom:2px}
+  .chip{
+    background:var(--chipbg);border:1px solid var(--line);color:var(--muted);
+    font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:14px;
+    text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;
+    padding:8px 14px;border-radius:3px;cursor:pointer;flex:none;
+  }
+  .chip:hover{color:var(--text)}
+  .chip:focus-visible{outline:2px solid var(--amber);outline-offset:1px}
+  .chip.on{background:var(--amber);color:var(--amber-ink);border-color:var(--amber)}
+
+  .ring{margin-top:30px}
+  .ring>h2{
+    font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:24px;
+    text-transform:uppercase;letter-spacing:.04em;margin:0 0 4px;
+  }
+  .ring>p{margin:0 0 14px;color:var(--muted);font-size:13px}
+
+  .county{background:var(--panel);border:1px solid var(--line);margin-bottom:14px}
+  .county-head{
+    display:flex;align-items:baseline;gap:10px;padding:10px 16px;
+    background:var(--panel-2);border-bottom:1px solid var(--line);
+  }
+  .county-head h3{
+    font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:19px;
+    text-transform:uppercase;letter-spacing:.05em;margin:0;
+  }
+  .county-head .n{
+    margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);
+    font-variant-numeric:tabular-nums;
+  }
+  .feed{
+    display:flex;align-items:center;gap:12px;padding:12px 16px;
+    border-bottom:1px solid var(--line);
+  }
+  .feed:last-child{border-bottom:0}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--good);flex:none}
+  .dot.off{background:var(--off)}
+  .feed-name{flex:1;min-width:0;font-weight:500;font-size:14px}
+  .feed-name small{display:block;color:var(--muted);font-weight:400;font-size:12px}
+  .tag{
+    flex:none;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:12px;
+    text-transform:uppercase;letter-spacing:.06em;color:var(--muted);
+    border:1px solid var(--line);padding:2px 8px;border-radius:2px;
+  }
+  .lis{
+    flex:none;width:64px;text-align:right;font-family:'IBM Plex Mono',monospace;
+    font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;
+  }
+  .listen{
+    flex:none;background:var(--amber);color:var(--amber-ink);text-decoration:none;
+    font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;
+    text-transform:uppercase;letter-spacing:.06em;padding:9px 16px;border-radius:3px;
+  }
+  .listen:hover{filter:brightness(1.1)}
+  .listen:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+  .empty{padding:10px 16px;color:var(--muted);font-size:13px}
+  .empty a{color:var(--muted)}
+  .none{padding:24px;text-align:center;color:var(--muted);display:none}
+
+  footer{margin-top:44px;border-top:1px solid var(--line);padding-top:18px;color:var(--muted);font-size:13px}
+  footer h2{
+    font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:600;
+    text-transform:uppercase;letter-spacing:.06em;color:var(--text);margin:16px 0 4px;
+  }
+  footer p{margin:0 0 8px;max-width:76ch}
+  footer a{color:var(--amber)}
+  @media (max-width:640px){
+    .lis{display:none}
+    .tag{display:none}
+    .brand h1{font-size:32px}
+    .stats{gap:14px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1>North <span class="star">&#x2726;</span> Star Scanner</h1>
+      <p>Live police, fire &amp; EMS feeds &mdash; Twin Cities metro + 100-mile ring, Minnesota</p>
+    </div>
+    <div class="stats">
+      <div class="stat"><b id="stat-feeds">0</b><span>Feeds</span></div>
+      <div class="stat"><b id="stat-counties">0</b><span>Counties</span></div>
+      <div class="stat"><b id="stat-listeners">0</b><span>Listeners*</span></div>
+    </div>
+  </header>
+
+  <div class="advisory">
+    <h2>Encrypted &mdash; not available on any scanner app</h2>
+    <p><b>Minneapolis PD</b> (2025), <b>St. Paul PD primary dispatch</b> (2025) and <b>Hennepin County Sheriff main dispatch</b> (2019) moved to encrypted channels on the statewide ARMER radio system. No app can carry them. Fire, EMS, and most suburban and outstate agencies below are still in the clear &mdash; Minneapolis Fire, for example, streams live in Hennepin County.</p>
+  </div>
+
+  <div class="controls">
+    <input class="search" id="q" type="search" placeholder="Search a city, county, or agency&hellip;" aria-label="Search feeds">
+    <div class="chips" id="chips" role="group" aria-label="Filter by feed type"></div>
+  </div>
+
+  <section class="ring" id="ring-core">
+    <h2>Metro Core</h2>
+    <p>The seven-county Twin Cities metro</p>
+    <div class="list"></div>
+  </section>
+
+  <section class="ring" id="ring-outer">
+    <h2>Outer Ring</h2>
+    <p>Counties within roughly 100 miles &mdash; St. Cloud, Rochester, Mankato &amp; Willmar areas</p>
+    <div class="list"></div>
+  </section>
+
+  <p class="none" id="none">No feeds match. Clear the search or filters above.</p>
+
+  <footer>
+    <p>*Listener counts and online status are a snapshot from the Broadcastify directory, Sept 10, 2026. The Listen button opens the feed's live player on Broadcastify, whose streams are provided by volunteer feed operators.</p>
+    <h2>Know before you listen</h2>
+    <p><b>In a vehicle:</b> Minnesota Statute 299C.37 makes it a misdemeanor to equip a motor vehicle with a radio receiver capable of picking up police transmissions without a permit from the Bureau of Criminal Apprehension. Whether that applies to a phone app has not been settled by Minnesota courts &mdash; listening at home is legal.</p>
+    <p><b>Never use scanner audio to interfere with a scene, respond to calls, or aid a crime</b> &mdash; using intercepted communications in furtherance of a crime is its own offense.</p>
+    <p>Feed directory &copy; <a href="https://www.broadcastify.com/listen/stid/27" rel="noopener">Broadcastify / RadioReference</a>. This app links to their public players; it does not rebroadcast audio.</p>
+  </footer>
+</div>
+
+<script>
+const COUNTIES=[
+ {c:"Hennepin",ring:"core",ctid:"1336",feeds:[
+  {n:"Minneapolis Fire and Hennepin Dispatch",id:"46645",g:"safety",l:1},
+  {n:"Bloomington, Richfield, and Edina Public Safety",id:"35188",g:"safety",l:7},
+  {n:"Minneapolis St. Paul International Airport",id:"38618",g:"aviation",l:1},
+  {n:"NOAA Weather Radio Minneapolis/Saint Paul (KEC65)",id:"25105",g:"weather",l:0},
+  {n:"ARERT EchoLink Conference Node",id:"38868",g:"ham",l:0},
+  {n:"The Handiham Network",id:"44992",g:"ham",l:0},
+  {n:"WD0HWT 146.8500 MHz MARA Repeater",id:"38732",g:"ham",l:0}]},
+ {c:"Ramsey",ring:"core",ctid:"1371",feeds:[
+  {n:"St Paul Police and Ramsey County Sheriff",id:"41055",g:"safety",l:25},
+  {n:"Saint Paul Fire",id:"35249",g:"safety",l:8},
+  {n:"Ramsey County Sheriff",id:"36735",g:"safety",l:1},
+  {n:"Washington County, Maplewood and North Saint Paul Public Safety",id:"1651",g:"safety",l:17},
+  {n:"BNSF Midway Sub",id:"42295",g:"rail",l:0},
+  {n:"NOAA Weather Radio Minneapolis/Saint Paul (KEC65)",id:"25105",g:"weather",l:0}]},
+ {c:"Dakota",ring:"core",ctid:"1328",feeds:[
+  {n:"W0BU 147.21 MHz Repeater, Skywarn, South Metro Area",id:"38795",g:"ham",l:0},
+  {n:"14.3000 MHz Amateur HF",id:"28933",g:"ham",l:0},
+  {n:"NOAA Weather Radio Minneapolis/Saint Paul (KEC65)",id:"25105",g:"weather",l:0}]},
+ {c:"Anoka",ring:"core",ctid:"1311",feeds:[
+  {n:"Anoka County Police and Fire",id:"32921",g:"safety",l:33},
+  {n:"Anoka County Fire",id:"39605",g:"safety",l:0},
+  {n:"Anoka County EMS Dispatch",id:"39614",g:"safety",l:0},
+  {n:"Anoka County Radio Club Repeater",id:"42696",g:"ham",l:0},
+  {n:"BNSF Main and Northtown yard",id:"45775",g:"rail",l:0,off:1},
+  {n:"NOAA Weather Radio Minneapolis/Saint Paul (KEC65)",id:"25105",g:"weather",l:0}]},
+ {c:"Washington",ring:"core",ctid:"1391",feeds:[
+  {n:"Washington County Public Safety",id:"16557",g:"safety",l:1},
+  {n:"Washington County, Maplewood and North Saint Paul Public Safety",id:"1651",g:"safety",l:17},
+  {n:"NOAA Weather Radio Minneapolis/Saint Paul (KEC65)",id:"25105",g:"weather",l:0}]},
+ {c:"Scott",ring:"core",ctid:"1379",feeds:[
+  {n:"Scott County Emergency Services",id:"15230",g:"safety",l:3},
+  {n:"Carver and Scott County Public Safety",id:"38923",g:"safety",l:1},
+  {n:"NOAA Weather Radio Minneapolis/Saint Paul (KEC65)",id:"25105",g:"weather",l:0}]},
+ {c:"Carver",ring:"core",ctid:"1319",feeds:[
+  {n:"Carver and Scott County Public Safety",id:"38923",g:"safety",l:1},
+  {n:"NOAA Weather Radio Minneapolis/Saint Paul (KEC65)",id:"25105",g:"weather",l:0}]},
+ {c:"Wright",ring:"outer",ctid:"1395",feeds:[
+  {n:"Wright County Public Safety",id:"38042",g:"safety",l:9},
+  {n:"Wright County BNSF / CPKC Rail",id:"46361",g:"rail",l:0},
+  {n:"Wright County CPKC Paynesville Subdivision",id:"38623",g:"rail",l:1},
+  {n:"NOAA Weather Radio Minneapolis/Saint Paul (KEC65)",id:"25105",g:"weather",l:0}]},
+ {c:"Sherburne",ring:"outer",ctid:"1380",feeds:[
+  {n:"Sherburne County Public Safety",id:"46845",g:"safety",l:3},
+  {n:"Central Minnesota Railroads",id:"36171",g:"rail",l:1}]},
+ {c:"Stearns",ring:"outer",ctid:"1382",feeds:[
+  {n:"Benton and Stearns County Public Safety",id:"39484",g:"safety",l:28},
+  {n:"Stearns, Meeker and Kandiyohi Counties Public Safety",id:"31115",g:"safety",l:3}]},
+ {c:"Isanti",ring:"outer",ctid:"1339",feeds:[
+  {n:"Isanti County Sheriff and Fire",id:"38704",g:"safety",l:4}]},
+ {c:"Chisago",ring:"outer",ctid:"1322",feeds:[
+  {n:"NOAA Weather Radio Minneapolis/Saint Paul (KEC65)",id:"25105",g:"weather",l:0}]},
+ {c:"Mille Lacs",ring:"outer",ctid:"1357",feeds:[
+  {n:"Mille Lacs Public Safety",id:"45639",g:"safety",l:1},
+  {n:"Mille Lacs County Fire",id:"43036",g:"safety",l:0}]},
+ {c:"Pine",ring:"outer",ctid:"1367",feeds:[
+  {n:"Pine County Fire and EMS",id:"31131",g:"safety",l:6}]},
+ {c:"McLeod",ring:"outer",ctid:"1352",feeds:[
+  {n:"McLeod County Public Safety",id:"3053",g:"safety",l:6},
+  {n:"Hutchinson Area General Aviation",id:"40726",g:"aviation",l:0},
+  {n:"Hutchinson Public Works",id:"39298",g:"other",l:0}]},
+ {c:"Meeker",ring:"outer",ctid:"1356",feeds:[
+  {n:"Meeker County Sheriff, Police, Fire, and EMS",id:"1524",g:"safety",l:3},
+  {n:"Stearns, Meeker and Kandiyohi Counties Public Safety",id:"31115",g:"safety",l:2}]},
+ {c:"Kandiyohi",ring:"outer",ctid:"1343",feeds:[
+  {n:"Willmar Police, Fire and EMS",id:"10449",g:"safety",l:19},
+  {n:"Stearns, Meeker and Kandiyohi Counties Public Safety",id:"31115",g:"safety",l:4},
+  {n:"BNSF Wayzata-Morris Subs and Willmar Yard",id:"17080",g:"rail",l:1}]},
+ {c:"Rice",ring:"outer",ctid:"1375",feeds:[
+  {n:"NOAA Weather Radio Minneapolis/Saint Paul (KEC65)",id:"25105",g:"weather",l:0}]},
+ {c:"Goodhue",ring:"outer",ctid:"1334",feeds:[
+  {n:"Goodhue County Sheriff, Red Wing and all county Police and Fire",id:"23262",g:"safety",l:14},
+  {n:"Red Wing Fire",id:"41193",g:"safety",l:4}]},
+ {c:"Wabasha",ring:"outer",ctid:"1388",feeds:[
+  {n:"Wabasha Area BNSF and CPKC Rail",id:"46834",g:"rail",l:0}]},
+ {c:"Dodge",ring:"outer",ctid:"1329",feeds:[
+  {n:"Dodge County Sheriff, Fire, and EMS",id:"11692",g:"safety",l:11}]},
+ {c:"Olmsted",ring:"outer",ctid:"1364",feeds:[
+  {n:"Olmsted County Police, Fire and EMS",id:"25696",g:"safety",l:9}]},
+ {c:"Steele",ring:"outer",ctid:"1383",feeds:[
+  {n:"Steele County Fire Dispatch",id:"27380",g:"safety",l:2},
+  {n:"Blooming Prairie Fire",id:"34078",g:"safety",l:0},
+  {n:"Ellendale Fire",id:"23333",g:"safety",l:0},
+  {n:"Morristown Fire",id:"14518",g:"safety",l:0}]},
+ {c:"Waseca",ring:"outer",ctid:"1390",feeds:[
+  {n:"Waseca County Sheriff - Digital",id:"30836",g:"safety",l:0}]},
+ {c:"Blue Earth",ring:"outer",ctid:"1316",feeds:[
+  {n:"Blue Earth and Faribault Counties Sheriff, Police and EMS",id:"13736",g:"safety",l:28}]},
+ {c:"Benton",ring:"outer",ctid:"1314",feeds:[],note:"Covered by the Benton &amp; Stearns feed under Stearns County"},
+ {c:"Kanabec",ring:"outer",ctid:"1342",feeds:[]},
+ {c:"Sibley",ring:"outer",ctid:"1381",feeds:[]},
+ {c:"Nicollet",ring:"outer",ctid:"1361",feeds:[]},
+ {c:"Le Sueur",ring:"outer",ctid:"1349",feeds:[]}
+];
+const GENRES=[
+ ["all","All"],["safety","Police / Fire / EMS"],["aviation","Aviation"],
+ ["rail","Rail"],["weather","Weather"],["ham","Ham Radio"],["other","Other"]
+];
+const GLABEL={safety:"Police/Fire/EMS",aviation:"Aviation",rail:"Rail",weather:"Weather",ham:"Ham",other:"Other"};
+let filter="all",query="";
+
+const chipsEl=document.getElementById("chips");
+GENRES.forEach(([key,label])=>{
+  const b=document.createElement("button");
+  b.className="chip"+(key==="all"?" on":"");
+  b.textContent=label;b.dataset.k=key;
+  b.addEventListener("click",()=>{
+    filter=key;
+    chipsEl.querySelectorAll(".chip").forEach(x=>x.classList.toggle("on",x.dataset.k===key));
+    render();
+  });
+  chipsEl.appendChild(b);
+});
+document.getElementById("q").addEventListener("input",e=>{query=e.target.value.trim().toLowerCase();render();});
+
+function feedRow(f){
+  const off=f.off?" off":"";
+  return `<div class="feed">
+    <span class="dot${off}" title="${f.off?"Offline":"Online"}"></span>
+    <span class="feed-name">${f.n}${f.off?'<small>Offline at last check</small>':""}</span>
+    <span class="tag">${GLABEL[f.g]||f.g}</span>
+    <span class="lis">${f.l>0?f.l+" &#x1F442;":""}</span>
+    <a class="listen" href="https://www.broadcastify.com/listen/feed/${f.id}" target="_blank" rel="noopener">Listen</a>
+  </div>`;
+}
+function countyBlock(cty){
+  const feeds=cty.feeds.filter(f=>
+    (filter==="all"||f.g===filter)&&
+    (!query||(cty.c+" "+f.n).toLowerCase().includes(query)));
+  if(cty.feeds.length===0){
+    if(filter!=="all"||(query&&!cty.c.toLowerCase().includes(query)))return null;
+    return `<div class="county"><div class="county-head"><h3>${cty.c} County</h3></div>
+      <div class="empty">${cty.note||`No public feeds yet &mdash; <a href="https://www.broadcastify.com/listen/ctid/${cty.ctid}" target="_blank" rel="noopener">watch this county on Broadcastify</a>`}</div></div>`;
+  }
+  if(feeds.length===0)return null;
+  return `<div class="county"><div class="county-head"><h3>${cty.c} County</h3>
+    <span class="n">${feeds.length} feed${feeds.length>1?"s":""}</span></div>
+    ${feeds.map(feedRow).join("")}</div>`;
+}
+function render(){
+  let any=false;
+  ["core","outer"].forEach(r=>{
+    const sec=document.getElementById("ring-"+r);
+    const blocks=COUNTIES.filter(c=>c.ring===r).map(countyBlock).filter(Boolean);
+    sec.querySelector(".list").innerHTML=blocks.join("");
+    sec.style.display=blocks.length?"":"none";
+    if(blocks.length)any=true;
+  });
+  document.getElementById("none").style.display=any?"none":"block";
+}
+(function stats(){
+  const seen=new Set();let listeners=0,feeds=0;
+  COUNTIES.forEach(c=>c.feeds.forEach(f=>{
+    feeds++;
+    if(!seen.has(f.id)){seen.add(f.id);listeners+=f.l;}
+  }));
+  document.getElementById("stat-feeds").textContent=feeds;
+  document.getElementById("stat-counties").textContent=COUNTIES.length;
+  document.getElementById("stat-listeners").textContent=listeners;
+})();
+render();
+if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{});}
+</script>
+</body>
+</html>
