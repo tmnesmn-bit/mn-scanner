@@ -248,6 +248,12 @@
     <div class="list"></div>
   </section>
 
+  <section class="ring" id="ring-valley">
+    <h2>Red River Valley</h2>
+    <p>East Grand Forks &amp; Grand Forks area</p>
+    <div class="list"></div>
+  </section>
+
   <p class="none" id="none">No feeds match. Clear the search or filters above.</p>
 
   <footer>
@@ -353,7 +359,9 @@ const COUNTIES=[
  {c:"Kanabec",ring:"outer",ctid:"1342",feeds:[]},
  {c:"Sibley",ring:"outer",ctid:"1381",feeds:[]},
  {c:"Nicollet",ring:"outer",ctid:"1361",feeds:[]},
- {c:"Le Sueur",ring:"outer",ctid:"1349",feeds:[]}
+ {c:"Le Sueur",ring:"outer",ctid:"1349",feeds:[]},
+ {c:"Polk",ring:"valley",ctid:"1369",feeds:[],note:'No one streams live audio here yet &mdash; law dispatch has recorded-clip coverage on <a href="https://www.broadcastify.com/calls/coverage/ctid/1369" target="_blank" rel="noopener">Broadcastify Calls</a>'},
+ {c:"Grand Forks",label:"Grand Forks County, ND",ring:"valley",ctid:"2004",feeds:[],note:'No live audio feeds yet &mdash; <a href="https://www.broadcastify.com/listen/ctid/2004" target="_blank" rel="noopener">watch this county on Broadcastify</a>'}
 ];
 const GENRES=[
  ["all","All"],["safety","Police / Fire / EMS"],["aviation","Aviation"],
@@ -392,17 +400,17 @@ function countyBlock(cty){
     (!query||(cty.c+" "+f.n).toLowerCase().includes(query)));
   if(cty.feeds.length===0){
     if(filter!=="all"||(query&&!cty.c.toLowerCase().includes(query)))return null;
-    return `<div class="county"><div class="county-head"><h3>${cty.c} County</h3></div>
+    return `<div class="county"><div class="county-head"><h3>${cty.label||cty.c+" County"}</h3></div>
       <div class="empty">${cty.note||`No public feeds yet &mdash; <a href="https://www.broadcastify.com/listen/ctid/${cty.ctid}" target="_blank" rel="noopener">watch this county on Broadcastify</a>`}</div></div>`;
   }
   if(feeds.length===0)return null;
-  return `<div class="county"><div class="county-head"><h3>${cty.c} County</h3>
+  return `<div class="county"><div class="county-head"><h3>${cty.label||cty.c+" County"}</h3>
     <span class="n">${feeds.length} feed${feeds.length>1?"s":""}</span></div>
     ${feeds.map(feedRow).join("")}</div>`;
 }
 function render(){
   let any=false;
-  ["core","outer"].forEach(r=>{
+  ["core","outer","valley"].forEach(r=>{
     const sec=document.getElementById("ring-"+r);
     const blocks=COUNTIES.filter(c=>c.ring===r).map(countyBlock).filter(Boolean);
     sec.querySelector(".list").innerHTML=blocks.join("");
